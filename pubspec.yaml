@@ -1,0 +1,26 @@
+name: mindora_workspace
+description: Mindora monorepo root (pub workspace). Not a package itself.
+publish_to: none
+
+environment:
+  sdk: ^3.14.0
+
+workspace:
+  - apps/mindora
+  - packages/mindora_glass
+
+dev_dependencies:
+  melos: ^7.0.0
+
+melos:
+  scripts:
+    analyze:
+      run: flutter analyze
+      exec:
+        concurrency: 1
+    test:
+      run: flutter test
+      exec:
+        concurrency: 1
+      packageFilters:
+        dirExists: test

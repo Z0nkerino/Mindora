@@ -1,0 +1,27 @@
+# Dart / Flutter
+.dart_tool/
+.packages
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+**/pubspec_overrides.yaml
+coverage/
+
+# IDE
+.idea/
+*.iml
+.vscode/*
+!.vscode/extensions.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Secrets — never commit
+.env
+.env.*
+*.keystore
+*.jks
+key.properties
+**/GoogleService-Info.plist
+**/google-services.json

@@ -1,0 +1,18 @@
+include: package:flutter_lints/flutter.yaml
+
+analyzer:
+  exclude:
+    - build/**
+    - lib/l10n/generated/**
+    - android/**
+    - ios/**
+    - web/**
+    - windows/**
+    - macos/**
+
+linter:
+  rules:
+    - prefer_const_constructors
+    - prefer_final_locals
+    - unawaited_futures
+    - directives_ordering
