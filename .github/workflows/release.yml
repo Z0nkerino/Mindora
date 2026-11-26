@@ -1,0 +1,111 @@
+name: Release
+
+# Builds downloadable apps and publishes them as a GitHub (pre-)release.
+# Trigger by pushing a tag like v0.1.0-phase1. Tags containing "-" are
+# marked as pre-releases.
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+env:
+  FLUTTER_VERSION: "3.50.1"
+
+jobs:
+  macos:
+    runs-on: macos-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v5
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - working-directory: apps/mindora
+        run: flutter build macos --release
+      - name: Package
+        working-directory: apps/mindora/build/macos/Build/Products/Release
+        run: ditto -c -k --sequesterRsrc --keepParent Mindora.app Mindora-macOS.zip
+      - uses: actions/upload-artifact@v5
+        with:
+          name: macos
+          path: apps/mindora/build/macos/Build/Products/Release/Mindora-macOS.zip
+
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v5
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - working-directory: apps/mindora
+        run: flutter build windows --release
+      - name: Package
+        shell: pwsh
+        working-directory: apps/mindora/build/windows/x64/runner
+        run: |
+          Rename-Item Release Mindora
+          Compress-Archive -Path Mindora -DestinationPath Mindora-Windows.zip
+      - uses: actions/upload-artifact@v5
+        with:
+          name: windows
+          path: apps/mindora/build/windows/x64/runner/Mindora-Windows.zip
+
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - working-directory: apps/mindora
+        run: |
+          flutter build apk --release
+          cp build/app/outputs/flutter-apk/app-release.apk Mindora-Android.apk
+      - uses: actions/upload-artifact@v5
+        with:
+          name: android
+          path: apps/mindora/Mindora-Android.apk
+
+  publish:
+    needs: [macos, windows, android]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v5
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          PRE=""
+          case "$TAG" in *-*) PRE="--prerelease";; esac
+          cat > notes.md <<'EOF'
+          Test build of Mindora. Unsigned: not yet notarized by Apple or signed for Windows/Android (store signing comes in Phase 9).
+
+          **macOS:** unzip, move Mindora.app to Applications, then right-click → Open → Open (first launch only). If macOS says the app is damaged, run `xattr -dr com.apple.quarantine /Applications/Mindora.app` in Terminal.
+
+          **Windows:** unzip the whole folder, then run `mindora.exe` inside it. If SmartScreen appears, click More info → Run anyway.
+
+          **Android:** open the APK on the phone and allow installing from this source.
+          EOF
+          gh release create "$TAG" dist/* --repo "$GITHUB_REPOSITORY" \
+            --title "Mindora $TAG" --notes-file notes.md $PRE
