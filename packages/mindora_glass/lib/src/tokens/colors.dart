@@ -14,8 +14,9 @@ abstract final class MindoraColors {
   /// progress — fills, rings and indicators.
   static const Color accent = Color(0xFFFF0051);
 
-  /// Accent for *small text* on light surfaces (5.20:1 on white).
-  static const Color accentInkLight = Color(0xFFD90045);
+  /// Accent for *small text* on light surfaces (5.76:1 on white, 4.69:1 on
+  /// the accent-soft selection tint).
+  static const Color accentInkLight = Color(0xFFCC0041);
 
   /// Accent for *small text* on dark surfaces (5.98:1 on black,
   /// 4.84:1 on dark glass).
@@ -118,7 +119,7 @@ class MindoraPalette {
     background: MindoraColors.black,
     textPrimary: MindoraColors.white,
     textSecondary: Color(0xA3FFFFFF), // 64 %
-    textTertiary: Color(0x75FFFFFF), // 46 %
+    textTertiary: Color(0x85FFFFFF), // 52 % → 5.5:1 on dark glass
     separator: Color(0x1FFFFFFF),
     accent: MindoraColors.accent,
     accentInk: MindoraColors.accentInkDark,
@@ -144,7 +145,7 @@ class MindoraPalette {
     background: MindoraColors.white,
     textPrimary: MindoraColors.black,
     textSecondary: Color(0x9E000000), // 62 %
-    textTertiary: Color(0x73000000), // 45 %
+    textTertiary: Color(0x8F000000), // 56 % → 4.9:1 on white
     separator: Color(0x14000000),
     accent: MindoraColors.accent,
     accentInk: MindoraColors.accentInkLight,

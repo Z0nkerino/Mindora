@@ -26,6 +26,7 @@ class GlassPressable extends StatefulWidget {
     this.tooltip,
     this.selected,
     this.toggled,
+    this.checked,
     this.focusNode,
     this.autofocus = false,
     this.showHover = true,
@@ -42,6 +43,7 @@ class GlassPressable extends StatefulWidget {
   final String? tooltip;
   final bool? selected;
   final bool? toggled;
+  final bool? checked;
   final FocusNode? focusNode;
   final bool autofocus;
   final bool showHover;
@@ -184,15 +186,19 @@ class _GlassPressableState extends State<GlassPressable>
     );
 
     child = Semantics(
+      // Without an explicit label, the visible text inside becomes the label.
+      container: widget.semanticLabel == null,
       button: widget.isButton,
       enabled: _enabled,
       selected: widget.selected,
       toggled: widget.toggled,
+      checked: widget.checked,
       label: widget.semanticLabel,
       onTap: _enabled ? _activate : null,
       excludeSemantics: widget.semanticLabel != null,
       child: child,
     );
+    if (widget.semanticLabel == null) child = MergeSemantics(child: child);
 
     if (widget.tooltip != null) {
       child = Tooltip(message: widget.tooltip!, child: child);

@@ -134,27 +134,36 @@ class _TabButton extends StatelessWidget {
       showHover: !selected,
       pressScale: 0.9,
       minSize: 0,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            selected ? (item.selectedIcon ?? item.icon) : item.icon,
-            size: 23,
-            color: color,
+      // Tab labels cap text scaling (as system tab bars do) and scale down
+      // rather than overflow the fixed-height bar. Full-size labels remain
+      // available to screen readers through the semantic label.
+      child: MediaQuery.withClampedTextScaling(
+        maxScaleFactor: 1.35,
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                selected ? (item.selectedIcon ?? item.icon) : item.icon,
+                size: 23,
+                color: color,
+              ),
+              const SizedBox(height: 2),
+              Text(
+                item.label,
+                maxLines: 1,
+                overflow: TextOverflow.fade,
+                softWrap: false,
+                style: labelStyle.copyWith(
+                  color: color,
+                  fontSize: 11,
+                  fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 2),
-          Text(
-            item.label,
-            maxLines: 1,
-            overflow: TextOverflow.fade,
-            softWrap: false,
-            style: labelStyle.copyWith(
-              color: color,
-              fontSize: 11,
-              fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }

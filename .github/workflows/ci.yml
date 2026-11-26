@@ -1,0 +1,162 @@
+name: CI
+
+on:
+  push:
+    branches: [main, "claude/**", "phase-**"]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FLUTTER_VERSION: "3.50.1"
+
+jobs:
+  analyze-test:
+    name: Analyze & test (Linux)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - name: Format
+        run: dart format --output=none --set-exit-if-changed apps/mindora/lib apps/mindora/test packages/mindora_glass/lib packages/mindora_glass/test
+      - name: Localisations are up to date
+        working-directory: apps/mindora
+        run: |
+          flutter gen-l10n
+          git diff --exit-code lib/l10n/generated
+      - name: Analyze
+        run: |
+          (cd packages/mindora_glass && flutter analyze --fatal-infos)
+          (cd apps/mindora && flutter analyze --fatal-infos)
+      - name: Test design system
+        working-directory: packages/mindora_glass
+        run: flutter test
+      - name: Test app (incl. goldens)
+        working-directory: apps/mindora
+        run: flutter test
+      - name: Upload golden failures
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: golden-failures
+          path: apps/mindora/test/goldens/failures/
+          if-no-files-found: ignore
+
+  build-web:
+    name: Build Web
+    runs-on: ubuntu-latest
+    needs: analyze-test
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - name: Build (Wasm + JS fallback, no third-party CDN)
+        working-directory: apps/mindora
+        run: flutter build web --release --wasm --no-web-resources-cdn
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mindora-web
+          path: apps/mindora/build/web
+
+  build-android:
+    name: Build Android
+    runs-on: ubuntu-latest
+    needs: analyze-test
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - name: Build APK (debug-signed until store signing in Phase 9)
+        working-directory: apps/mindora
+        run: flutter build apk --release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mindora-android-apk
+          path: apps/mindora/build/app/outputs/flutter-apk/app-release.apk
+
+  build-ios:
+    name: Build iOS / iPadOS
+    runs-on: macos-latest
+    needs: analyze-test
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - name: Build (no code signing)
+        working-directory: apps/mindora
+        run: flutter build ios --release --no-codesign
+      - name: Build for Simulator (runnable artifact)
+        working-directory: apps/mindora
+        run: flutter build ios --simulator --debug
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mindora-ios-simulator
+          path: apps/mindora/build/ios/iphonesimulator/Runner.app
+
+  build-macos:
+    name: Build macOS
+    runs-on: macos-latest
+    needs: analyze-test
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - working-directory: apps/mindora
+        run: flutter build macos --release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mindora-macos
+          path: apps/mindora/build/macos/Build/Products/Release/Mindora.app
+
+  build-windows:
+    name: Build Windows
+    runs-on: windows-latest
+    needs: analyze-test
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - working-directory: apps/mindora
+        run: flutter build windows --release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mindora-windows
+          path: apps/mindora/build/windows/x64/runner/Release

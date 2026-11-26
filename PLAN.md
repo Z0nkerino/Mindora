@@ -207,7 +207,7 @@ The adaptive shell has three layouts:
   | Accent use | on `#000` | on `#FFF` | on dark glass `#1C1C1E` |
   |---|---|---|---|
   | `#FF0051` (brand fill) | 5.37 ✅ | 3.91 ⚠️ large text / UI only | 4.35 ⚠️ large text / UI only |
-  | `#D90045` (**accent-ink, light mode**) | — | 5.20 ✅ | — |
+  | `#CC0041` (**accent-ink, light mode**) | — | 5.76 ✅ (4.69 on the selection tint) | — |
   | `#FF3374` (**accent-ink, dark mode**) | 5.98 ✅ | — | 4.84 ✅ |
 
   Rule: fills, rings, progress and selection use `#FF0051`. *Small accent-coloured text* uses the accent-ink tokens, which are visually indistinguishable at text size. Labels on accent-filled buttons use bold text ≥ 18.7 px, or black. All of this is enforced by a contrast unit test over every token pair.

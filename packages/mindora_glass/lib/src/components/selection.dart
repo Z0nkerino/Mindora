@@ -185,72 +185,69 @@ class _GlassSwitchState extends State<GlassSwitch>
   Widget build(BuildContext context) {
     final palette = context.palette;
     const w = 52.0, h = 32.0, knob = 26.0;
-    return Semantics(
-      toggled: widget.value,
-      enabled: widget.onChanged != null,
-      label: widget.semanticLabel,
-      child: Opacity(
-        opacity: widget.onChanged == null ? 0.4 : 1,
-        child: GlassPressable(
-          onPressed: widget.onChanged == null ? null : _toggle,
-          borderRadius: Radii.pill,
-          pressScale: 1,
-          isButton: false,
-          showHover: false,
-          child: Listener(
-            onPointerDown: (_) => _press.animateTo(1),
-            onPointerUp: (_) => _press.animateTo(0),
-            onPointerCancel: (_) => _press.animateTo(0),
-            child: Center(
-              child: AnimatedBuilder(
-                animation: Listenable.merge([_t, _press]),
-                builder: (context, _) {
-                  final t = _t.value;
-                  final stretch = 6 * _press.value.clamp(0, 1);
-                  final kw = knob + stretch;
-                  final travel = w - kw - 6;
-                  final left = 3 + travel * t.clamp(0, 1);
-                  final off = palette.isDark
-                      ? const Color(0x33FFFFFF)
-                      : const Color(0x24000000);
-                  final track = Color.lerp(off, palette.accent, t.clamp(0, 1))!;
-                  return SizedBox(
-                    width: w,
-                    height: h,
-                    child: Stack(
-                      children: [
-                        Positioned.fill(
-                          child: DecoratedBox(
-                            decoration: ShapeDecoration(
-                              color: track,
-                              shape: const StadiumBorder(),
-                            ),
+    return Opacity(
+      opacity: widget.onChanged == null ? 0.4 : 1,
+      child: GlassPressable(
+        onPressed: widget.onChanged == null ? null : _toggle,
+        semanticLabel: widget.semanticLabel ?? '',
+        toggled: widget.value,
+        borderRadius: Radii.pill,
+        pressScale: 1,
+        isButton: false,
+        showHover: false,
+        child: Listener(
+          onPointerDown: (_) => _press.animateTo(1),
+          onPointerUp: (_) => _press.animateTo(0),
+          onPointerCancel: (_) => _press.animateTo(0),
+          child: Center(
+            child: AnimatedBuilder(
+              animation: Listenable.merge([_t, _press]),
+              builder: (context, _) {
+                final t = _t.value;
+                final stretch = 6 * _press.value.clamp(0, 1);
+                final kw = knob + stretch;
+                final travel = w - kw - 6;
+                final left = 3 + travel * t.clamp(0, 1);
+                final off = palette.isDark
+                    ? const Color(0x33FFFFFF)
+                    : const Color(0x24000000);
+                final track = Color.lerp(off, palette.accent, t.clamp(0, 1))!;
+                return SizedBox(
+                  width: w,
+                  height: h,
+                  child: Stack(
+                    children: [
+                      Positioned.fill(
+                        child: DecoratedBox(
+                          decoration: ShapeDecoration(
+                            color: track,
+                            shape: const StadiumBorder(),
                           ),
                         ),
-                        Positioned(
-                          left: left,
-                          top: 3,
-                          child: Container(
-                            width: kw,
-                            height: knob,
-                            decoration: ShapeDecoration(
-                              color: Colors.white,
-                              shape: const StadiumBorder(),
-                              shadows: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.22),
-                                  blurRadius: 6,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ],
-                            ),
+                      ),
+                      Positioned(
+                        left: left,
+                        top: 3,
+                        child: Container(
+                          width: kw,
+                          height: knob,
+                          decoration: ShapeDecoration(
+                            color: Colors.white,
+                            shape: const StadiumBorder(),
+                            shadows: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.22),
+                                blurRadius: 6,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
                           ),
                         ),
-                      ],
-                    ),
-                  );
-                },
-              ),
+                      ),
+                    ],
+                  ),
+                );
+              },
             ),
           ),
         ),
@@ -307,31 +304,29 @@ class _GlassCheckboxState extends State<GlassCheckbox>
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
-    return Semantics(
+    return GlassPressable(
+      semanticLabel: widget.semanticLabel ?? '',
       checked: widget.value,
-      label: widget.semanticLabel,
-      child: GlassPressable(
-        onPressed: widget.onChanged == null
-            ? null
-            : () {
-                HapticFeedback.lightImpact();
-                widget.onChanged!(!widget.value);
-              },
-        borderRadius: Radii.pill,
-        pressScale: 0.85,
-        isButton: false,
-        showHover: false,
-        child: Center(
-          child: AnimatedBuilder(
-            animation: _t,
-            builder: (context, _) => CustomPaint(
-              size: Size.square(widget.size),
-              painter: _CheckPainter(
-                t: _t.value,
-                ring: palette.textTertiary,
-                fill: palette.accent,
-                tick: palette.onAccent,
-              ),
+      onPressed: widget.onChanged == null
+          ? null
+          : () {
+              HapticFeedback.lightImpact();
+              widget.onChanged!(!widget.value);
+            },
+      borderRadius: Radii.pill,
+      pressScale: 0.85,
+      isButton: false,
+      showHover: false,
+      child: Center(
+        child: AnimatedBuilder(
+          animation: _t,
+          builder: (context, _) => CustomPaint(
+            size: Size.square(widget.size),
+            painter: _CheckPainter(
+              t: _t.value,
+              ring: palette.textTertiary,
+              fill: palette.accent,
+              tick: palette.onAccent,
             ),
           ),
         ),

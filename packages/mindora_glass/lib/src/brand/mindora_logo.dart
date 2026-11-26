@@ -16,23 +16,26 @@ abstract final class MindoraMark {
   static const double canvas = 2000;
 
   /// Left x of each bar.
-  static const List<double> barX = [299, 806, 1313];
-  static const double barWidth = 386;
+  static const List<double> barX = [299, 807, 1314];
+  static const double barWidth = 385;
+
+  /// Vertical drop of the top and bottom edges across one bar (≈45°).
+  static const double slant = 377;
 
   /// Top-left (sharp) corner y, and the y where the vertical edges end.
-  static const double topLeftY = 425;
-  static const double verticalLength = 760;
+  static const double topLeftY = 393;
+  static const double verticalLength = 836;
 
   /// Rounding (tangent distance along each edge) at sharp/obtuse corners.
-  static const double sharpRound = 34;
-  static const double obtuseRound = 105;
+  static const double sharpRound = 52;
+  static const double obtuseRound = 60;
 
   /// Bounding box of the three bars inside [canvas].
   static Rect get bounds => Rect.fromLTRB(
     barX.first,
     topLeftY,
     barX.last + barWidth,
-    topLeftY + barWidth + verticalLength,
+    topLeftY + slant + verticalLength,
   );
 
   /// Outline of bar [i] in canvas coordinates.
@@ -40,8 +43,8 @@ abstract final class MindoraMark {
     final x0 = barX[i];
     final x1 = x0 + barWidth;
     final tl = Offset(x0, topLeftY); // sharp
-    final tr = Offset(x1, topLeftY + barWidth); // obtuse
-    final br = Offset(x1, topLeftY + barWidth + verticalLength); // sharp
+    final tr = Offset(x1, topLeftY + slant); // obtuse
+    final br = Offset(x1, topLeftY + slant + verticalLength); // sharp
     final bl = Offset(x0, topLeftY + verticalLength); // obtuse
     return roundedPolygon(
       [tl, tr, br, bl],

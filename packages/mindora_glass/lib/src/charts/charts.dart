@@ -124,7 +124,9 @@ class _LinePainter extends CustomPainter {
     // Pad the range so small day-to-day changes look calm, not dramatic.
     final lo = values.reduce(math.min);
     final hi = values.reduce(math.max);
-    final raw = (hi - lo).abs() < 1e-9 ? (hi.abs() < 1e-9 ? 1.0 : hi.abs()) : hi - lo;
+    final raw = (hi - lo).abs() < 1e-9
+        ? (hi.abs() < 1e-9 ? 1.0 : hi.abs())
+        : hi - lo;
     final minV = lo - raw * 0.35;
     final maxV = hi + raw * 0.15;
     final span = maxV - minV;

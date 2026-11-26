@@ -174,8 +174,7 @@ class _GlassTextFieldState extends State<GlassTextField> {
 
     final below = widget.error ?? widget.helper;
     return Semantics(
-      textField: true,
-      label: widget.label,
+      container: true,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
@@ -188,7 +187,14 @@ class _GlassTextFieldState extends State<GlassTextField> {
                 style: type.subhead.copyWith(color: palette.textSecondary),
               ),
             ),
-          box,
+          // The editable node itself carries the label so screen readers
+          // announce "Task, text field" rather than an unnamed field.
+          MergeSemantics(
+            child: Semantics(
+              label: widget.label ?? widget.placeholder,
+              child: box,
+            ),
+          ),
           if (below != null)
             Padding(
               padding: const EdgeInsets.only(left: Space.xs, top: Space.s),
