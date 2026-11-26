@@ -89,7 +89,13 @@ class _BranchContainerState extends State<_BranchContainer> {
   }
 }
 
-class _Branch extends StatelessWidget {
+/// One branch in the container. Fades in/out, and once fully faded out it
+/// goes offstage (not laid out, painted, hit-tested or read by screen
+/// readers) while keeping its state.
+///
+/// The fade runs *outside* the TickerMode that pauses the hidden page —
+/// putting it inside would freeze the fade-out and leave old pages visible.
+class _Branch extends StatefulWidget {
   const _Branch({
     super.key,
     required this.active,
@@ -102,28 +108,58 @@ class _Branch extends StatelessWidget {
   final Widget child;
 
   @override
+  State<_Branch> createState() => _BranchState();
+}
+
+class _BranchState extends State<_Branch> with SingleTickerProviderStateMixin {
+  late final AnimationController _fade = AnimationController(
+    vsync: this,
+    value: widget.active ? 1 : 0,
+    duration: const Duration(milliseconds: 240),
+    reverseDuration: const Duration(milliseconds: 120),
+  )..addStatusListener((_) => setState(() {}));
+
+  @override
+  void didUpdateWidget(_Branch old) {
+    super.didUpdateWidget(old);
+    if (old.active != widget.active) {
+      if (widget.active) {
+        _fade.forward();
+      } else {
+        _fade.reverse();
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _fade.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return IgnorePointer(
-      ignoring: !active,
-      child: ExcludeSemantics(
-        excluding: !active,
-        child: FocusScope(
-          canRequestFocus: active,
-          child: TickerMode(
-            enabled: active,
-            child: AnimatedOpacity(
-              opacity: active ? 1 : 0,
-              duration: active
-                  ? const Duration(milliseconds: 240)
-                  : const Duration(milliseconds: 120),
-              curve: Curves.easeOut,
-              child: AnimatedSlide(
-                offset: active || reduceMotion
-                    ? Offset.zero
-                    : const Offset(0, 0.012),
-                duration: const Duration(milliseconds: 300),
-                curve: Curves.easeOutCubic,
-                child: child,
+    final active = widget.active;
+    final hidden = !active && _fade.isDismissed;
+    final curved = CurvedAnimation(parent: _fade, curve: Curves.easeOutCubic);
+    return Offstage(
+      offstage: hidden,
+      child: IgnorePointer(
+        ignoring: !active,
+        child: ExcludeSemantics(
+          excluding: !active,
+          child: FocusScope(
+            canRequestFocus: active,
+            child: FadeTransition(
+              opacity: curved,
+              child: SlideTransition(
+                position: widget.reduceMotion
+                    ? const AlwaysStoppedAnimation(Offset.zero)
+                    : Tween(
+                        begin: const Offset(0, 0.012),
+                        end: Offset.zero,
+                      ).animate(curved),
+                child: TickerMode(enabled: active, child: widget.child),
               ),
             ),
           ),

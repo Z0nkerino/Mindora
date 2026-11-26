@@ -19,6 +19,27 @@ void main() {
       expect(find.text('Agenda'), findsOneWidget);
     });
 
+    testWidgets('only the current module is visible after switching', (
+      tester,
+    ) async {
+      await pumpApp(tester);
+      expect(find.text('Agenda'), findsOneWidget);
+      for (final tab in ['Tasks', 'Notes', 'Calendar', 'Today', 'Tasks']) {
+        await tester.tap(
+          find.descendant(
+            of: find.byType(GlassTabBar),
+            matching: find.text(tab),
+          ),
+        );
+        await settle(tester);
+      }
+      // Finders skip offstage widgets: hidden pages must not be found.
+      expect(find.text('Nothing on your plate'), findsOneWidget);
+      expect(find.text('Agenda'), findsNothing);
+      expect(find.text('A quiet place to think'), findsNothing);
+      expect(find.text('Your time, at a glance'), findsNothing);
+    });
+
     testWidgets('tab bar navigates between modules', (tester) async {
       await pumpApp(tester);
       await tester.tap(
@@ -81,6 +102,71 @@ void main() {
       final sidebar = tester.widget<GlassSidebar>(find.byType(GlassSidebar));
       expect(sidebar.collapsed, isFalse);
       expect(sidebar.items.length, Destination.sidebar.length);
+      expect(sidebar.pinnedItems.length, Destination.sidebarPinned.length);
+    });
+
+    testWidgets('sidebar switching never stacks pages', (tester) async {
+      await pumpApp(tester, size: const Size(1280, 800));
+      for (final label in ['Calendar', 'Tasks', 'Notes', 'Health']) {
+        await tester.tap(
+          find.descendant(
+            of: find.byType(GlassSidebar),
+            matching: find.text(label),
+          ),
+        );
+        await settle(tester);
+      }
+      expect(find.text('Your wellbeing, in one place'), findsOneWidget);
+      for (final gone in [
+        'Agenda',
+        'Your time, at a glance',
+        'Nothing on your plate',
+        'A quiet place to think',
+      ]) {
+        expect(find.text(gone), findsNothing, reason: gone);
+      }
+    });
+
+    testWidgets('short windows keep every sidebar item visible', (
+      tester,
+    ) async {
+      for (final size in const [
+        Size(900, 560),
+        Size(900, 640),
+        Size(1280, 600),
+        Size(1280, 480),
+      ]) {
+        await pumpApp(tester, size: size);
+        final settings = tester.getRect(
+          find.descendant(
+            of: find.byType(GlassSidebar),
+            matching: find.bySemanticsLabel('Settings'),
+          ),
+        );
+        final search = tester.getRect(
+          find
+              .descendant(
+                of: find.byType(GlassSidebar),
+                matching: find.byIcon(Icons.search_rounded),
+              )
+              .first,
+        );
+        expect(settings.bottom, lessThanOrEqualTo(search.top), reason: '$size');
+        // At common heights the whole module list fits without scrolling.
+        if (size.height >= 600) {
+          final assistant = tester.getRect(
+            find.descendant(
+              of: find.byType(GlassSidebar),
+              matching: find.bySemanticsLabel('Assistant'),
+            ),
+          );
+          expect(
+            assistant.bottom,
+            lessThanOrEqualTo(settings.top),
+            reason: 'Assistant hidden at $size',
+          );
+        }
+      }
     });
 
     testWidgets('tablet width collapses the sidebar to a rail', (tester) async {

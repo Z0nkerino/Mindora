@@ -73,8 +73,10 @@ enum Destination {
     (health, true),
     (finance, false),
     (assistant, true),
-    (settings, true),
   ];
+
+  /// Pinned to the bottom of the sidebar so it is always reachable.
+  static const sidebarPinned = [settings];
 
   /// Destinations reachable from the phone "More" screen.
   static const moreItems = [

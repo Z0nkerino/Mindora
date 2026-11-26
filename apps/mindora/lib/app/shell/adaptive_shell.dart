@@ -98,6 +98,7 @@ class AdaptiveShell extends ConsumerWidget {
           ),
         );
       }
+      dests.addAll(Destination.sidebarPinned);
       final selected = dests.indexOf(_current);
 
       body = Row(
@@ -107,6 +108,9 @@ class AdaptiveShell extends ConsumerWidget {
             child: GlassSidebar(
               collapsed: collapsed,
               items: items,
+              pinnedItems: [
+                for (final d in Destination.sidebarPinned) d.navItem(l),
+              ],
               selectedIndex: selected,
               onSelected: (i) => _go(dests[i]),
               header: _SidebarHeader(collapsed: collapsed),

@@ -53,6 +53,11 @@ Branch: `claude/phase-1-foundation`
 | "Auto" glass tier GPU benchmark | Auto currently means Liquid on native and Frosted on web. A benchmark is planned for Phase 9. |
 | iOS 18 dark/tinted icon variants | Phase 9 (store polish). |
 
+### Fixed after first test on Windows
+- **Modules stacked on top of each other** after switching. The fade-out of a hidden page sat inside the `TickerMode` that pauses hidden pages, so it froze and old pages never disappeared. The fade now runs outside, and pages go fully offstage once hidden. Regression tests on phone and desktop check that previous pages are gone.
+- **Sidebar items cut off in short windows.** Settings is now pinned to the bottom of the sidebar. The module list compacts (dividers first, then rows down to 30 px), and only scrolls, with a fade at the edge, below about 560 px tall. A test checks heights from 480 to 640 px.
+- **Today cards** had fixed heights that could overflow with longer text or large text sizes. They now size to their content, with cards in a row matching heights.
+
 ### Known issues / needs your eyes
 - **Check on a real device:** the shader-driven liquid pill and the blur were checked in Chromium (web) and through tests. Impeller on iOS, Android and macOS still needs a look on real hardware. Please try the tab bar and segmented controls, Settings → Glass → Liquid, and the gallery.
 - The Russian copy was written carefully but should get a read from a native speaker before launch.

@@ -65,19 +65,32 @@ class TodayScreen extends StatelessWidget {
                 : c.crossAxisExtent >= 560
                 ? 2
                 : 1;
-            return SliverGrid(
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: cols,
-                mainAxisSpacing: Space.m,
-                crossAxisSpacing: Space.m,
-                mainAxisExtent: 148,
-              ),
-              delegate: SliverChildBuilderDelegate(
-                (context, i) => GlassEntrance(
-                  index: i,
-                  child: _TodayCard(data: cards[i]),
+            // Rows size to their content (so large text never overflows);
+            // cards within a row share the tallest card's height.
+            final rows = <List<int>>[
+              for (var i = 0; i < cards.length; i += cols)
+                [for (var j = i; j < i + cols && j < cards.length; j++) j],
+            ];
+            return SliverList.separated(
+              itemCount: rows.length,
+              separatorBuilder: (_, _) => const SizedBox(height: Space.m),
+              itemBuilder: (context, r) => IntrinsicHeight(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    for (var k = 0; k < cols; k++) ...[
+                      if (k > 0) const SizedBox(width: Space.m),
+                      Expanded(
+                        child: k < rows[r].length
+                            ? GlassEntrance(
+                                index: rows[r][k],
+                                child: _TodayCard(data: cards[rows[r][k]]),
+                              )
+                            : const SizedBox.shrink(),
+                      ),
+                    ],
+                  ],
                 ),
-                childCount: cards.length,
               ),
             );
           },
@@ -104,14 +117,13 @@ class _TodayCard extends StatelessWidget {
     return GlassCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
           GlassCardHeader(title: data.title, icon: data.icon),
-          const Spacer(),
+          const SizedBox(height: Space.s),
           Text(
             data.empty,
             style: context.type.callout.copyWith(color: palette.textSecondary),
-            maxLines: 3,
-            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),

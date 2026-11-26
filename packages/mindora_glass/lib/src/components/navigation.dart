@@ -64,7 +64,7 @@ class GlassTabBar extends StatelessWidget {
           child: LayoutBuilder(
             builder: (context, c) {
               final w = (c.maxWidth - pad * 2) / items.length;
-              final target = selectedIndex < 0
+              final target = selectedIndex < 0 || selectedIndex >= items.length
                   ? null
                   : Rect.fromLTWH(
                       pad + w * selectedIndex,
@@ -176,24 +176,49 @@ class GlassSidebar extends StatelessWidget {
     required this.items,
     required this.selectedIndex,
     required this.onSelected,
+    this.pinnedItems = const [],
     this.header,
     this.footer,
     this.collapsed = false,
   });
 
+  /// Main destinations. They compact, then scroll, when the window is short.
   final List<GlassNavItem> items;
+
+  /// Destinations pinned to the bottom (e.g. Settings): always visible.
+  final List<GlassNavItem> pinnedItems;
+
+  /// Index into `[...items, ...pinnedItems]`; -1 for none.
   final int selectedIndex;
   final ValueChanged<int> onSelected;
   final Widget? header;
   final Widget? footer;
   final bool collapsed;
 
+  /// Preferred and minimum row heights. Rows shrink towards [minRowHeight]
+  /// when the window is short, so every item stays visible; below that the
+  /// list scrolls.
   static const double rowHeight = 40;
+  static const double minRowHeight = 30;
   static const double dividerHeight = 17;
+  static const double compactDividerHeight = 9;
+
+  /// (row height, divider height) that best fit all items into [available].
+  /// Dividers compact first, then rows shrink down to [minRowHeight].
+  (double, double) fittedMetrics(double available) {
+    final dividers = items.where((i) => i.dividerBefore).length;
+    final gaps = (items.length - 1) * 2.0;
+    double fit(double divider) =>
+        (available - dividers * divider - gaps) / items.length;
+    if (fit(dividerHeight) >= rowHeight) return (rowHeight, dividerHeight);
+    final row = fit(compactDividerHeight).clamp(minRowHeight, rowHeight);
+    return (row.toDouble(), compactDividerHeight);
+  }
+
   static const double expandedWidth = 248;
   static const double collapsedWidth = 76;
 
-  double _offsetOf(int index) {
+  double _offsetOf(int index, double rowHeight, double dividerHeight) {
     var y = 0.0;
     for (var i = 0; i <= index && i < items.length; i++) {
       if (items[i].dividerBefore) y += dividerHeight;
@@ -210,10 +235,21 @@ class GlassSidebar extends StatelessWidget {
 
     final list = LayoutBuilder(
       builder: (context, c) {
+        final (rowH, dividerH) = fittedMetrics(c.maxHeight);
+        final contentH =
+            items.length * rowH +
+            (items.length - 1) * 2 +
+            items.where((i) => i.dividerBefore).length * dividerH;
+        final scrolls = contentH > c.maxHeight + 0.5;
         final target = selectedIndex < 0
             ? null
-            : Rect.fromLTWH(0, _offsetOf(selectedIndex), c.maxWidth, rowHeight);
-        return SingleChildScrollView(
+            : Rect.fromLTWH(
+                0,
+                _offsetOf(selectedIndex, rowH, dividerH),
+                c.maxWidth,
+                rowH,
+              );
+        final list = SingleChildScrollView(
           child: Stack(
             children: [
               Positioned.fill(
@@ -231,7 +267,7 @@ class GlassSidebar extends StatelessWidget {
                   for (var i = 0; i < items.length; i++) ...[
                     if (items[i].dividerBefore)
                       SizedBox(
-                        height: dividerHeight,
+                        height: dividerH,
                         child: Center(
                           child: Container(
                             height: 1,
@@ -243,6 +279,7 @@ class GlassSidebar extends StatelessWidget {
                         ),
                       ),
                     _SidebarRow(
+                      height: rowH,
                       item: items[i],
                       selected: i == selectedIndex,
                       collapsed: collapsed,
@@ -256,6 +293,18 @@ class GlassSidebar extends StatelessWidget {
               ),
             ],
           ),
+        );
+        if (!scrolls) return list;
+        // Still too tall: fade the bottom edge so it reads as scrollable.
+        return ShaderMask(
+          blendMode: BlendMode.dstIn,
+          shaderCallback: (r) => const LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFF000000), Color(0xFF000000), Color(0x00000000)],
+            stops: [0, 0.88, 1],
+          ).createShader(r),
+          child: list,
         );
       },
     );
@@ -277,6 +326,27 @@ class GlassSidebar extends StatelessWidget {
                   const SizedBox(height: Space.l),
                 ],
                 Expanded(child: list),
+                if (pinnedItems.isNotEmpty) ...[
+                  Container(
+                    height: 1,
+                    margin: const EdgeInsets.symmetric(
+                      horizontal: Space.s,
+                      vertical: Space.s,
+                    ),
+                    color: palette.separator,
+                  ),
+                  for (var j = 0; j < pinnedItems.length; j++)
+                    _SidebarRow(
+                      height: rowHeight,
+                      item: pinnedItems[j],
+                      selected: selectedIndex == items.length + j,
+                      selectedBackground: true,
+                      collapsed: collapsed,
+                      onTap: () => onSelected(items.length + j),
+                      palette: palette,
+                      type: type,
+                    ),
+                ],
                 if (footer != null) ...[
                   const SizedBox(height: Space.s),
                   footer!,
@@ -292,6 +362,8 @@ class GlassSidebar extends StatelessWidget {
 
 class _SidebarRow extends StatelessWidget {
   const _SidebarRow({
+    required this.height,
+    this.selectedBackground = false,
     required this.item,
     required this.selected,
     required this.collapsed,
@@ -300,6 +372,11 @@ class _SidebarRow extends StatelessWidget {
     required this.type,
   });
 
+  final double height;
+
+  /// Pinned rows have no liquid indicator behind them, so they paint their
+  /// own selected background.
+  final bool selectedBackground;
   final GlassNavItem item;
   final bool selected;
   final bool collapsed;
@@ -324,8 +401,15 @@ class _SidebarRow extends StatelessWidget {
       showHover: !selected,
       pressScale: 0.97,
       minSize: 0,
-      child: SizedBox(
-        height: GlassSidebar.rowHeight,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        height: height,
+        decoration: ShapeDecoration(
+          color: selected && selectedBackground
+              ? palette.accentSoft
+              : const Color(0x00000000),
+          shape: const RoundedSuperellipseBorder(borderRadius: Radii.small),
+        ),
         child: collapsed
             ? Center(child: icon)
             : Padding(
