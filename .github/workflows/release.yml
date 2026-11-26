@@ -6,6 +6,8 @@ name: Release
 on:
   push:
     tags: ["v*"]
+  release:
+    types: [published]
 
 permissions:
   contents: write
@@ -94,7 +96,7 @@ jobs:
       - name: Create release
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG: ${{ github.ref_name }}
+          TAG: ${{ github.event.release.tag_name || github.ref_name }}
         run: |
           PRE=""
           case "$TAG" in *-*) PRE="--prerelease";; esac
@@ -107,5 +109,10 @@ jobs:
 
           **Android:** open the APK on the phone and allow installing from this source.
           EOF
-          gh release create "$TAG" dist/* --repo "$GITHUB_REPOSITORY" \
-            --title "Mindora $TAG" --notes-file notes.md $PRE
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            # Release was created by hand in the GitHub UI: just attach the builds.
+            gh release upload "$TAG" dist/* --repo "$GITHUB_REPOSITORY" --clobber
+          else
+            gh release create "$TAG" dist/* --repo "$GITHUB_REPOSITORY" \
+              --title "Mindora $TAG" --notes-file notes.md $PRE
+          fi
