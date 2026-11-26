@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
@@ -45,7 +45,7 @@ jobs:
         run: flutter test
       - name: Upload golden failures
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: golden-failures
           path: apps/mindora/test/goldens/failures/
@@ -57,7 +57,7 @@ jobs:
     needs: analyze-test
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
@@ -67,7 +67,7 @@ jobs:
       - name: Build (Wasm + JS fallback, no third-party CDN)
         working-directory: apps/mindora
         run: flutter build web --release --wasm --no-web-resources-cdn
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: mindora-web
           path: apps/mindora/build/web
@@ -78,7 +78,7 @@ jobs:
     needs: analyze-test
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -92,7 +92,7 @@ jobs:
       - name: Build APK (debug-signed until store signing in Phase 9)
         working-directory: apps/mindora
         run: flutter build apk --release
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: mindora-android-apk
           path: apps/mindora/build/app/outputs/flutter-apk/app-release.apk
@@ -103,7 +103,7 @@ jobs:
     needs: analyze-test
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
@@ -116,10 +116,13 @@ jobs:
       - name: Build for Simulator (runnable artifact)
         working-directory: apps/mindora
         run: flutter build ios --simulator --debug
-      - uses: actions/upload-artifact@v4
+      - name: Package simulator app
+        working-directory: apps/mindora/build/ios/iphonesimulator
+        run: ditto -c -k --sequesterRsrc --keepParent Runner.app Mindora-iOS-Simulator.zip
+      - uses: actions/upload-artifact@v5
         with:
           name: mindora-ios-simulator
-          path: apps/mindora/build/ios/iphonesimulator/Runner.app
+          path: apps/mindora/build/ios/iphonesimulator/Mindora-iOS-Simulator.zip
 
   build-macos:
     name: Build macOS
@@ -127,7 +130,7 @@ jobs:
     needs: analyze-test
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
@@ -136,10 +139,13 @@ jobs:
       - run: flutter pub get
       - working-directory: apps/mindora
         run: flutter build macos --release
-      - uses: actions/upload-artifact@v4
+      - name: Package (ditto keeps symlinks, permissions and the .app wrapper)
+        working-directory: apps/mindora/build/macos/Build/Products/Release
+        run: ditto -c -k --sequesterRsrc --keepParent Mindora.app Mindora-macOS.zip
+      - uses: actions/upload-artifact@v5
         with:
           name: mindora-macos
-          path: apps/mindora/build/macos/Build/Products/Release/Mindora.app
+          path: apps/mindora/build/macos/Build/Products/Release/Mindora-macOS.zip
 
   build-windows:
     name: Build Windows
@@ -147,7 +153,7 @@ jobs:
     needs: analyze-test
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
@@ -156,7 +162,7 @@ jobs:
       - run: flutter pub get
       - working-directory: apps/mindora
         run: flutter build windows --release
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: mindora-windows
           path: apps/mindora/build/windows/x64/runner/Release
